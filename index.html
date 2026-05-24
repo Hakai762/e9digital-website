@@ -651,6 +651,72 @@ body {
   box-shadow: 0 8px 30px rgba(255,255,255,0.15);
 }
 
+/* ── CONTACT FORM ── */
+.contact-form {
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: left;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.form-field { margin-bottom: 1rem; }
+.form-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 0.4rem;
+}
+.form-field input,
+.form-field textarea {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+.form-field input::placeholder,
+.form-field textarea::placeholder { color: rgba(255,255,255,0.3); }
+.form-field input:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255,255,255,0.06);
+}
+.form-field textarea { resize: vertical; min-height: 110px; }
+.contact-form .btn-primary {
+  width: 100%;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+.contact-form .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.form-honeypot { display: none !important; }
+.form-status {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
+  min-height: 1.2rem;
+}
+.form-status.success { color: #4ade80; }
+.form-status.error { color: #f87171; }
+.form-alt {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.35);
+}
+.form-alt a { color: rgba(255,255,255,0.6); text-decoration: underline; }
+
 /* ── FOOTER ── */
 .footer {
   padding: 3rem 2rem;
@@ -720,6 +786,7 @@ body {
   .hero h1 { font-size: 2.2rem; }
   .hero-actions { flex-direction: column; }
   .btn-primary, .btn-secondary { text-align: center; justify-content: center; }
+  .form-row { grid-template-columns: 1fr; gap: 0; }
 }
 </style>
 </head>
@@ -989,9 +1056,39 @@ body {
   <div class="cta-inner">
     <div class="section-label" style="color: rgba(255,255,255,0.4);">Get Started</div>
     <h2 class="section-title">Ready to stop<br>doing things manually?</h2>
-    <p class="section-subtitle">Book a free 30-minute discovery call. We'll identify your biggest automation opportunities and show you exactly what's possible.</p>
-    <a href="mailto:hello@e9digital.co.uk" class="btn-primary">hello@e9digital.co.uk →</a>
-    <p style="margin-top: 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.35);">No commitment. No jargon. Just an honest conversation.</p>
+    <p class="section-subtitle">Tell us a bit about your business and what's eating your time. We'll get back to you within one working day to set up a free, no-obligation call.</p>
+
+    <form class="contact-form" id="contactForm">
+      <!-- Web3Forms access key — replace YOUR_ACCESS_KEY_HERE with your real key -->
+      <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE">
+      <input type="hidden" name="subject" value="New enquiry from e9digital.co.uk">
+      <input type="hidden" name="from_name" value="E9 Digital Website">
+      <!-- Honeypot spam trap (bots fill it, humans don't see it) -->
+      <input type="checkbox" name="botcheck" class="form-honeypot" tabindex="-1" autocomplete="off">
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="cf-name">Name</label>
+          <input type="text" id="cf-name" name="name" placeholder="Jane Smith" required>
+        </div>
+        <div class="form-field">
+          <label for="cf-company">Company</label>
+          <input type="text" id="cf-company" name="company" placeholder="Smith &amp; Co" required>
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="cf-email">Email</label>
+        <input type="email" id="cf-email" name="email" placeholder="jane@smithco.co.uk" required>
+      </div>
+      <div class="form-field">
+        <label for="cf-message">What's eating your time?</label>
+        <textarea id="cf-message" name="message" placeholder="e.g. We spend hours every week manually entering client invoices and chasing follow-ups..." required></textarea>
+      </div>
+      <button type="submit" class="btn-primary" id="cf-submit">Send Enquiry →</button>
+      <div class="form-status" id="cf-status"></div>
+    </form>
+
+    <p class="form-alt">Prefer email? Reach us directly at <a href="mailto:hello@e9digital.co.uk">hello@e9digital.co.uk</a></p>
   </div>
 </section>
 
@@ -1009,6 +1106,45 @@ body {
 </footer>
 
 <script>
+// Contact form submission (Web3Forms, AJAX — keeps user on page)
+const contactForm = document.getElementById('contactForm');
+if (contactForm) {
+  contactForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = document.getElementById('cf-submit');
+    const status = document.getElementById('cf-status');
+    const originalText = submitBtn.textContent;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    status.className = 'form-status';
+    status.textContent = '';
+
+    try {
+      const formData = new FormData(contactForm);
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        status.className = 'form-status success';
+        status.textContent = 'Thanks — your enquiry is in. We\'ll be in touch within one working day.';
+        contactForm.reset();
+        submitBtn.textContent = 'Sent ✓';
+      } else {
+        throw new Error(data.message || 'Submission failed');
+      }
+    } catch (err) {
+      status.className = 'form-status error';
+      status.innerHTML = 'Something went wrong. Please email us directly at <a href="mailto:hello@e9digital.co.uk" style="color:#f87171;">hello@e9digital.co.uk</a>';
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  });
+}
+
 // Nav scroll effect
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => {
